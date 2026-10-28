@@ -131,6 +131,8 @@ class CameraSource(BaseVideoSource):
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
             with self._lock:
+                # Drivers may ignore the requested size (AVFoundation does); report what arrives
+                self._height, self._width = rgb.shape[:2]
                 self._latest_frame = np.ascontiguousarray(rgb)
                 self._latest_ts = ts
                 self._frame_count += 1

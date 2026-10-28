@@ -1,4 +1,5 @@
 import os
+import sys
 import ctypes
 import time
 from typing import Optional, Tuple
@@ -18,22 +19,23 @@ class PHFEncoder:
         bin_dir = os.path.join(project_dir, "bin")
         root = os.path.abspath(os.path.join(project_dir, ".."))
         
+        if sys.platform == "win32":
+            name, arch_dir = "phf.dll", "windows_x64"
+        elif sys.platform == "darwin":
+            name, arch_dir = "libphf.dylib", "macos_arm64"
+        else:
+            name, arch_dir = "libphf.so", "linux_x86_64"
+
         search_paths.extend([
             # 1. Project-local bin/ directory (self-contained standalone)
-            os.path.join(bin_dir, "phf.dll"),
-            os.path.join(bin_dir, "libphf.so"),
-            os.path.join(bin_dir, "libphf.dylib"),
-            os.path.join(bin_dir, "windows_x64", "phf.dll"),
-            os.path.join(bin_dir, "linux_x86_64", "libphf.so"),
-            os.path.join(bin_dir, "macos_arm64", "libphf.dylib"),
-            # 2. Monorepo development fallback
-            os.path.join(root, "phf", "libphf", "phf.dll"),
-            os.path.join(root, "phf", "libphf", "libphf.so"),
-            os.path.join(root, "phf", "libphf", "libphf.dylib"),
-            os.path.join(root, "phf", "phf.dll"),
+            os.path.join(bin_dir, name),
+            os.path.join(bin_dir, arch_dir, name),
+            # 2. Monorepo development fallback (CMake build of the sibling phf repo)
+            os.path.join(root, "phf", "build", name),
+            os.path.join(root, "phf", "libphf", name),
+            os.path.join(root, "phf", name),
             # 3. Server directory fallback
-            os.path.join(os.path.dirname(__file__), "phf.dll"),
-            os.path.join(os.path.dirname(__file__), "libphf.so"),
+            os.path.join(os.path.dirname(__file__), name),
         ])
         
         for p in search_paths:
