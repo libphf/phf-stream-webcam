@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHF Live Stream — Pure High-Fidelity Webcam</title>
+    <link rel="stylesheet" href="style.css?v=1.0.0">
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <span class="logo-icon">📡</span>
+            <div class="brand-title">
+                <h1>PHF Live Stream</h1>
+                <span class="sub">Ultra-Low Latency Lossless Video Streaming</span>
+            </div>
+            <span class="badge wasm-badge">WASM SIMD128</span>
+            <span class="badge lossless-badge">100% Bit-Exact</span>
+        </div>
+        <div class="connection-status" id="connStatus">
+            <span class="dot connecting"></span>
+            <span class="text">Connecting...</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="video-container">
+            <!-- Hardware warning banner -->
+            <div class="alert-banner hidden" id="alertBanner">
+                <span class="icon">⚠️</span>
+                <span class="msg" id="alertMsg">Hardware warning message</span>
+                <button class="btn-close" id="btnCloseAlert">✕</button>
+            </div>
+
+            <div class="viewport">
+                <canvas id="videoCanvas" width="320" height="240"></canvas>
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <p id="loadingText">Waiting for camera stream...</p>
+                </div>
+
+                <!-- Floating HUD overlay -->
+                <div class="hud-overlay" id="hudOverlay">
+                    <div class="hud-item">
+                        <span class="hud-label">FPS</span>
+                        <span class="hud-val highlight" id="hudFps">0.0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">Total Latency</span>
+                        <span class="hud-val green" id="hudLatency">-- ms</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">Bitrate</span>
+                        <span class="hud-val" id="hudBitrate">0.0 Mbps</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">Decode (WASM)</span>
+                        <span class="hud-val" id="hudDecodeTime">0.0 ms</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">Compression</span>
+                        <span class="hud-val green" id="hudRatio">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="sidebar">
+            <div class="card">
+                <div class="card-header-row">
+                    <h3>📹 Camera Configuration</h3>
+                    <button id="btnRefreshCameras" class="btn-icon" title="Refresh Connected Cameras">🔄 Scan</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="cameraSelect">Connected Camera</label>
+                    <select id="cameraSelect">
+                        <option value="">Scanning cameras...</option>
+                    </select>
+                </div>
+
+                <!-- Banner when no cameras found -->
+                <div class="no-camera-alert hidden" id="noCameraAlert">
+                    <span>⚠️ Nenhuma câmera detectada neste dispositivo. Conecte uma webcam e clique em <strong>Scan</strong>.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="resSelect">Resolution</label>
+                    <select id="resSelect">
+                        <option value="320x240" selected>320x240 (Recomendada / Padrão)</option>
+                    </select>
+                </div>
+
+                <button id="btnApplyCamera" class="btn btn-primary">Apply Settings</button>
+            </div>
+
+            <div class="card">
+                <h3>🎙️ Live Audio</h3>
+                <div class="form-group">
+                    <label for="micSelect">Audio Input (Microphone)</label>
+                    <select id="micSelect">
+                        <option value="">Scanning microphones...</option>
+                    </select>
+                </div>
+
+                <div class="audio-control-row">
+                    <button id="btnToggleAudio" class="btn btn-toggle audio-off">
+                        <span class="icon">🔇</span>
+                        <span id="btnAudioText">Enable Audio</span>
+                    </button>
+                    <div class="volume-container">
+                        <span class="vol-icon">🔊</span>
+                        <input type="range" id="volSlider" min="0" max="3" step="0.1" value="1.2" title="Volume / Gain Boost (up to 300%)">
+                    </div>
+                </div>
+
+                <div class="vu-meter-container">
+                    <div class="vu-bar" id="vuBar"></div>
+                </div>
+            </div>
+
+            <div class="card info-card">
+                <h4>💎 Why PHF Streaming?</h4>
+                <p>
+                    Unlike MJPEG or H.264/WebRTC lossy streams that introduce 4:2:0 chroma subsampling, mosquito noise, and blur, <strong>PHF streams every frame mathematically lossless</strong>.
+                </p>
+                <div class="stat-highlight">
+                    <span>Lossless Efficiency:</span>
+                    <strong class="green" id="statSaved">Up to 74% Bandwidth Saved</strong>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script type="module" src="stream-client.js?v=1.0.4"></script>
+</body>
+</html>
