@@ -129,6 +129,10 @@ class AudioSource:
     def is_enabled(self) -> bool:
         return self._enabled
 
+    @property
+    def device_id(self) -> Optional[int]:
+        return self._device_id
+
     def stop(self):
         self._enabled = False
         if self._stream:

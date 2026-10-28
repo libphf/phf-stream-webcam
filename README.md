@@ -12,6 +12,7 @@ Unlike lossy streaming protocols (MJPEG, H.264 WebRTC) that introduce 4:2:0 chro
 phf-stream-webcam/
 ├── bin/                      # Pre-built native dynamic libraries (self-contained)
 │   ├── phf.dll               # Pre-compiled Windows x64 native engine
+│   ├── libphf.dylib          # Pre-compiled macOS universal (arm64 + x86_64) engine
 │   └── README.md             # Compilation instructions for Linux / macOS
 ├── server/
 │   ├── base_source.py        # Abstract base class for video capture sources
@@ -50,14 +51,29 @@ Optional parameters:
 python run.py --http-port 8080 --ws-port 8765
 ```
 
+By default the server listens on `127.0.0.1` only, so the camera and microphone are reachable
+from this machine alone. To watch from another device, opt in explicitly:
+```bash
+python run.py --host 0.0.0.0
+```
+> ⚠️ There is no authentication: anyone who can reach the machine on those ports can watch the
+> camera and turn on the microphone. Only do this on a network you trust.
+
+The WebSocket only accepts connections from the dashboard page itself, so other websites open
+in the browser cannot tap the stream.
+
 ### 3. Open in Browser
 👉 **`http://localhost:8080`**
+
+**macOS:** the first run asks for Camera and Microphone access for the app that launched Python
+(Terminal, iTerm, VS Code…). If it was denied, enable it under *System Settings › Privacy &
+Security › Camera* (and *Microphone*) and restart that app.
 
 ---
 
 ## 💎 Features
 
-* **Self-Contained & Ready to Run:** Includes pre-compiled native binaries (`bin/phf.dll` for Windows x64) and pre-built WebAssembly SIMD128 decoder (`web/phf.wasm`). No manual compiler setup required for testing.
+* **Self-Contained & Ready to Run:** Includes pre-compiled native binaries (`bin/phf.dll` for Windows x64, `bin/libphf.dylib` for macOS) and pre-built WebAssembly SIMD128 decoder (`web/phf.wasm`). No manual compiler setup required for testing.
 * **Instant Multiplatform Camera Discovery:** Scans all connected cameras on the host system with clear notifications if no camera is detected.
 * **Smart Resolution Selection:** Defaults to the verified baseline resolution (`320x240`) for instant playback, with dynamic switching to `640x480 (VGA)`, `800x600 (SVGA)`, `1280x720`, and `1920x1080`, complete with hardware bandwidth warnings when high resolutions cause USB 2.0 sensor throttling.
 * **Deadlock-Free Threading:** Robust thread isolation ensures smooth resolution switching without DirectShow driver deadlocks.
