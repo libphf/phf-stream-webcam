@@ -7,6 +7,7 @@ const PKT_JSON  = 0x03;
 
 let ws = null;
 let phfMod = null;
+let wsPort = 8765; // replaced by the server's /config.json (follows --ws-port)
 
 // Video Canvas
 const canvas = document.getElementById('videoCanvas');
@@ -155,6 +156,11 @@ function handleVideoPacket(u8) {
         if (wasmSrcPtr) phfMod._free(wasmSrcPtr);
         wasmSrcCapacity = Math.max(phfLen * 2, 65536);
         wasmSrcPtr = phfMod._malloc(wasmSrcCapacity);
+        if (!wasmSrcPtr) {
+            wasmSrcCapacity = 0;
+            console.error('[PHF] Out of WASM memory for input buffer');
+            return;
+        }
     }
     phfMod.HEAPU8.set(phfBytes, wasmSrcPtr);
 
@@ -164,6 +170,11 @@ function handleVideoPacket(u8) {
         if (wasmDstPtr) phfMod._free(wasmDstPtr);
         wasmDstCapacity = Math.max(outBytes * 2, 1048576);
         wasmDstPtr = phfMod._malloc(wasmDstCapacity);
+        if (!wasmDstPtr) {
+            wasmDstCapacity = 0;
+            console.error('[PHF] Out of WASM memory for output buffer');
+            return;
+        }
     }
 
     const t0 = performance.now();
@@ -205,7 +216,7 @@ function handleVideoPacket(u8) {
 function connectWebSocket() {
     setConnectionState('connecting', 'Connecting...');
     const wsHost = window.location.hostname || 'localhost';
-    const wsUrl = `ws://${wsHost}:8765`;
+    const wsUrl = `ws://${wsHost}:${wsPort}`;
 
     ws = new WebSocket(wsUrl);
     ws.binaryType = 'arraybuffer';
@@ -318,6 +329,9 @@ function handleJsonMessage(msg) {
             }
             updateResolutionOptions(cameraSelect.value);
         } else {
+            if (msg.camera_hint) {
+                noCameraAlert.querySelector('span').innerText = `⚠️ ${msg.camera_hint}`;
+            }
             noCameraAlert.classList.remove('hidden');
             cameraSelect.innerHTML = '<option value="">Nenhuma câmera detectada</option>';
             resSelect.innerHTML = '<option value="">Indisponível</option>';
@@ -347,6 +361,12 @@ function handleJsonMessage(msg) {
             alertMsg.innerText = 'Erro: A câmera não conseguiu iniciar nesta configuração.';
             alertBanner.classList.remove('hidden');
         }
+    } else if (msg.type === 'audio_status') {
+        if (isAudioEnabled && !msg.enabled) {
+            alertMsg.innerText = 'Erro: o microfone não pôde ser aberto.';
+            alertBanner.classList.remove('hidden');
+            setAudioButton(false);
+        }
     }
 }
 
@@ -370,18 +390,9 @@ btnApplyCamera.addEventListener('click', () => {
     }));
 });
 
-btnToggleAudio.addEventListener('click', async () => {
-    initAudio();
-    if (audioCtx && audioCtx.state === 'suspended') {
-        try {
-            await audioCtx.resume();
-        } catch (e) {
-            console.error('AudioContext resume failed:', e);
-        }
-    }
-    isAudioEnabled = !isAudioEnabled;
-
-    if (isAudioEnabled) {
+function setAudioButton(enabled) {
+    isAudioEnabled = enabled;
+    if (enabled) {
         btnToggleAudio.className = 'btn btn-toggle audio-on';
         btnToggleAudio.querySelector('.icon').innerText = '🎙️';
         btnAudioText.innerText = 'Audio Streaming (Live)';
@@ -391,9 +402,22 @@ btnToggleAudio.addEventListener('click', async () => {
         btnAudioText.innerText = 'Enable Audio';
         vuBar.style.width = '0%';
     }
+}
+
+btnToggleAudio.addEventListener('click', async () => {
+    initAudio();
+    if (audioCtx && audioCtx.state === 'suspended') {
+        try {
+            await audioCtx.resume();
+        } catch (e) {
+            console.error('AudioContext resume failed:', e);
+        }
+    }
+    setAudioButton(!isAudioEnabled);
 
     if (ws && ws.readyState === WebSocket.OPEN) {
-        const micId = parseInt(micSelect.value) || 0;
+        // null lets the server pick the system default microphone
+        const micId = micSelect.value === '' ? null : parseInt(micSelect.value);
         ws.send(JSON.stringify({
             action: 'toggle_audio',
             enabled: isAudioEnabled,
@@ -424,6 +448,12 @@ setInterval(() => {
     try {
         loadingText.innerText = 'Initializing WebAssembly SIMD128 decoder...';
         phfMod = await getPHFModule();
+        try {
+            const cfg = await (await fetch('config.json', { cache: 'no-store' })).json();
+            if (Number.isInteger(cfg.ws_port)) wsPort = cfg.ws_port;
+        } catch (e) {
+            console.warn('No server config.json, using default WebSocket port', wsPort);
+        }
         connectWebSocket();
     } catch (err) {
         console.error('Failed to initialize PHF WASM Module:', err);

@@ -23,18 +23,24 @@ from stream_server import StreamServer
 
 def main():
     parser = argparse.ArgumentParser(description="PHF Live Stream Server (Webcam & Audio)")
+    parser.add_argument("--host", default="127.0.0.1",
+                        help="Interface to listen on (default: 127.0.0.1, this machine only). "
+                             "Use 0.0.0.0 to expose camera and microphone to the whole network.")
     parser.add_argument("--http-port", type=int, default=8080, help="HTTP dashboard port (default: 8080)")
     parser.add_argument("--ws-port", type=int, default=8765, help="WebSocket streaming port (default: 8765)")
     args = parser.parse_args()
 
     web_dir = os.path.join(os.path.dirname(__file__), "web")
-    server = StreamServer(web_dir=web_dir, http_port=args.http_port, ws_port=args.ws_port)
+    server = StreamServer(web_dir=web_dir, host=args.host, http_port=args.http_port, ws_port=args.ws_port)
 
     print("=" * 60)
     print("  🚀 PHF Live Stream Server")
     print("=" * 60)
     print(f"  👉 Web Dashboard:    http://localhost:{args.http_port}")
     print(f"  👉 WebSocket Stream:  ws://localhost:{args.ws_port}")
+    if args.host not in ("127.0.0.1", "localhost", "::1"):
+        print(f"  ⚠️  Listening on {args.host}: anyone who can reach this machine can watch")
+        print("      the camera and turn on the microphone. There is no authentication.")
     print("=" * 60)
     print("Press Ctrl+C to terminate.")
 
